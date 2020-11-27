@@ -785,20 +785,6 @@ public final class MessagingService implements MessagingServiceMBean
      */
     public void sendOneWay(MessageOut message, int id, InetAddress to)
     {
-
-        if (Interceptor.instance().shouldIntercept(message, id, to)){
-            logger.info("Message intercepted...{}", message);
-            Interceptor.intercept(message, id, to);
-        } else 
-            sendOneWayFiltered(message, id, to);
-    }
-
-    /**
-    * DMCK : moves the message sending here, so we can send messages later 
-    * when our filter is done
-    */
-    public void sendOneWayFiltered(MessageOut message, int id, InetAddress to)
-    {
         if (logger.isTraceEnabled())
             logger.trace("{} sending {} to {}@{}", FBUtilities.getBroadcastAddress(), message.verb, id, to);
 
@@ -806,12 +792,11 @@ public final class MessagingService implements MessagingServiceMBean
             logger.trace("Message-to-self {} going over MessagingService", message);
 
         // message sinks are a testing hook
-        // DMCK TODO : should just use this to intercept
-        // So we won't change anything in the code
         for (IMessageSink ms : messageSinks)
             if (!ms.allowOutgoingMessage(message, id, to))
                 return;
 
+        logger.trace("{} actually sending {} to {}@{}", FBUtilities.getBroadcastAddress(), message.verb, id, to);
         // get pooled connection (really, connection queue)
         OutboundTcpConnection connection = getConnection(to, message);
 
