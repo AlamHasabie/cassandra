@@ -519,7 +519,7 @@ public abstract class ReadCommand implements ReadQuery
                     ClientWarn.instance.warn(msg);
                     logger.warn(msg);
                 }
-
+                Tracing.trace("Read {} live and {} tombstone cells{}", liveRows, tombstones, (warnTombstones ? " (see tombstone_warn_threshold)" : ""));
                 Tracing.trace("Read {} live and {} tombstone cells{}", liveRows, tombstones, (warnTombstones ? " (see tombstone_warn_threshold)" : ""));
             }
         };

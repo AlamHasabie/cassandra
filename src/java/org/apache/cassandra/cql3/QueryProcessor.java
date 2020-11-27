@@ -199,6 +199,7 @@ public class QueryProcessor implements QueryHandler
     throws RequestExecutionException, RequestValidationException
     {
         logger.trace("Process {} @CL.{}", statement, options.getConsistency());
+        logger.trace("Statement class {}", statement.getClass());
         ClientState clientState = queryState.getClientState();
         statement.checkAccess(clientState);
         statement.validate(clientState);
@@ -219,6 +220,7 @@ public class QueryProcessor implements QueryHandler
                                  Map<String, ByteBuffer> customPayload)
                                          throws RequestExecutionException, RequestValidationException
     {
+        logger.trace("query string : {}", query);
         return process(query, state, options);
     }
 

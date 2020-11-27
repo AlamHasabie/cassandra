@@ -18,6 +18,7 @@
 package org.apache.cassandra.transport;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
@@ -595,6 +596,7 @@ public abstract class Message
         @Override
         public boolean apply(Throwable exception)
         {
+            logger.trace(Arrays.toString(Thread.currentThread().getStackTrace()).replace( ',', '\n' ));
             String message;
             try
             {

@@ -1658,15 +1658,23 @@ public class StorageProxy implements StorageProxyMBean
         for (int i = 0; i < cmdCount; i++)
             reads[i].doInitialQueries();
 
+        logger.trace("Finish initial queries");
+
         for (int i = 0; i < cmdCount; i++)
             reads[i].maybeTryAdditionalReplicas();
+
+        logger.trace("Additional replicas tried");
 
         for (int i = 0; i < cmdCount; i++)
             reads[i].awaitResultsAndRetryOnDigestMismatch();
 
+        logger.trace("Finish waiting results and digest mismatch retried");
+
         for (int i = 0; i < cmdCount; i++)
             if (!reads[i].isDone())
                 reads[i].maybeAwaitFullDataRead();
+
+        logger.trace("Finish full data read, building result....");
 
         List<PartitionIterator> results = new ArrayList<>(cmdCount);
         for (int i = 0; i < cmdCount; i++)
@@ -1675,6 +1683,7 @@ public class StorageProxy implements StorageProxyMBean
             results.add(reads[i].getResult());
         }
 
+        logger.trace("Finish fetching rows");
         return PartitionIterators.concat(results);
     }
 
@@ -1691,6 +1700,7 @@ public class StorageProxy implements StorageProxyMBean
         {
             this.command = command;
             this.executor = AbstractReadExecutor.getReadExecutor(command, consistency);
+            logger.trace("ReadExecutor {}", executor.getClass());
             this.consistency = consistency;
         }
 
@@ -1717,6 +1727,7 @@ public class StorageProxy implements StorageProxyMBean
             }
             catch (DigestMismatchException ex)
             {
+                logger.trace("Digest mismatch: {}", ex);
                 Tracing.trace("Digest mismatch: {}", ex);
 
                 ReadRepairMetrics.repairedBlocking.mark();
@@ -1724,6 +1735,8 @@ public class StorageProxy implements StorageProxyMBean
                 // Do a full data read to resolve the correct response (and repair node that need be)
                 Keyspace keyspace = Keyspace.open(command.metadata().ksName);
                 DataResolver resolver = new DataResolver(keyspace, command, ConsistencyLevel.ALL, executor.handler.endpoints.size());
+
+                // ALAM-NOTE : repair handler called here
                 repairHandler = new ReadCallback(resolver,
                                                  ConsistencyLevel.ALL,
                                                  executor.getContactedReplicas().size(),
@@ -1734,6 +1747,7 @@ public class StorageProxy implements StorageProxyMBean
                 for (InetAddress endpoint : executor.getContactedReplicas())
                 {
                     MessageOut<ReadCommand> message = command.createMessage(MessagingService.instance().getVersion(endpoint));
+                    logger.trace("Enqueuing full data read to {}", endpoint);
                     Tracing.trace("Enqueuing full data read to {}", endpoint);
                     MessagingService.instance().sendRRWithFailure(message, endpoint, repairHandler);
                 }
