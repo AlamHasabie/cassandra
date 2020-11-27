@@ -17,6 +17,9 @@
  */
 package org.apache.cassandra.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.cassandra.db.partitions.UnfilteredPartitionIterator;
 import org.apache.cassandra.db.transform.RTBoundValidator;
 import org.apache.cassandra.db.transform.Transformation;
@@ -30,6 +33,9 @@ import org.apache.cassandra.tracing.Tracing;
 
 public class ReadCommandVerbHandler implements IVerbHandler<ReadCommand>
 {
+
+    protected static final Logger logger = LoggerFactory.getLogger(ReadCommandVerbHandler.class);
+
     protected IVersionedSerializer<ReadResponse> serializer()
     {
         return ReadResponse.serializer;
@@ -43,10 +49,18 @@ public class ReadCommandVerbHandler implements IVerbHandler<ReadCommand>
         }
 
         ReadCommand command = message.payload;
+
+        logger.trace("Read command class : {}", command.getClass());
         ReadResponse response;
         try (ReadOrderGroup opGroup = command.startOrderGroup(); UnfilteredPartitionIterator iterator = command.executeLocally(opGroup))
         {
             response = command.createResponse(iterator);
+
+            // Log response if SinglePartitionReadCommand
+            if (command instanceof SinglePartitionReadCommand) {
+                logger.trace("Read response : {}", response.toDebugString(command, ((SinglePartitionReadCommand) command).partitionKey()));
+            }
+            
         }
 
         MessageOut<ReadResponse> reply = new MessageOut<>(MessagingService.Verb.REQUEST_RESPONSE, response, serializer());

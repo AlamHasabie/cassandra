@@ -258,6 +258,8 @@ public class SelectStatement implements CQLStatement
         int userLimit = getLimit(options);
         ReadQuery query = getQuery(options, nowInSec, userLimit);
 
+        logger.trace("Query class : {}", query.getClass());
+
         int pageSize = getPageSize(options);
 
         if (pageSize <= 0 || query.limits().count() <= pageSize)

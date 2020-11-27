@@ -78,6 +78,9 @@ import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.utils.*;
 import org.apache.cassandra.utils.concurrent.SimpleCondition;
 
+// DMCK
+import edu.uchicago.cs.ucare.dmck.Interceptor;
+
 public final class MessagingService implements MessagingServiceMBean
 {
     // Required to allow schema migrations while upgrading within the minor 3.0.x versions to 3.0.14.
@@ -782,6 +785,20 @@ public final class MessagingService implements MessagingServiceMBean
      */
     public void sendOneWay(MessageOut message, int id, InetAddress to)
     {
+
+        if (Interceptor.instance().shouldIntercept(message, id, to)){
+            logger.info("Message intercepted...{}", message);
+            Interceptor.intercept(message, id, to);
+        } else 
+            sendOneWayFiltered(message, id, to);
+    }
+
+    /**
+    * DMCK : moves the message sending here, so we can send messages later 
+    * when our filter is done
+    */
+    public void sendOneWayFiltered(MessageOut message, int id, InetAddress to)
+    {
         if (logger.isTraceEnabled())
             logger.trace("{} sending {} to {}@{}", FBUtilities.getBroadcastAddress(), message.verb, id, to);
 
@@ -789,6 +806,8 @@ public final class MessagingService implements MessagingServiceMBean
             logger.trace("Message-to-self {} going over MessagingService", message);
 
         // message sinks are a testing hook
+        // DMCK TODO : should just use this to intercept
+        // So we won't change anything in the code
         for (IMessageSink ms : messageSinks)
             if (!ms.allowOutgoingMessage(message, id, to))
                 return;
@@ -853,6 +872,7 @@ public final class MessagingService implements MessagingServiceMBean
     public void receive(MessageIn message, int id, long timestamp, boolean isCrossNodeTimestamp)
     {
         TraceState state = Tracing.instance.initializeFromMessage(message);
+        logger.trace("{} message received from {}", message.verb, message.from);
         if (state != null)
             state.trace("{} message received from {}", message.verb, message.from);
 

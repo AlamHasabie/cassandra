@@ -135,7 +135,12 @@ public class ReadCallback implements IAsyncCallbackWithFailure<ReadResponse>
     public PartitionIterator get() throws ReadFailureException, ReadTimeoutException, DigestMismatchException
     {
         awaitResults();
-
+        logger.trace("Resolver class : {}", resolver.getClass());
+        if (blockfor == 1) {
+            logger.trace("Blockfor 1 , getData()");
+        } else {
+            logger.trace("Blockfor <> 1, resolve()");
+        }
         PartitionIterator result = blockfor == 1 ? resolver.getData() : resolver.resolve();
         if (logger.isTraceEnabled())
             logger.trace("Read: {} ms.", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));

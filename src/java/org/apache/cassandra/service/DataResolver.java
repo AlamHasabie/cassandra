@@ -88,6 +88,9 @@ public class DataResolver extends ResponseResolver
         for (int i = 0; i < count; i++)
         {
             MessageIn<ReadResponse> msg = responses.get(i);
+
+            // Get readResponse class
+            logger.trace("Resolving response:{}, data: {}, payload: {}", i, msg, msg.payload.getClass());
             iters.add(msg.payload.makeIterator(command));
             sources[i] = msg.from;
         }
@@ -357,6 +360,9 @@ public class DataResolver extends ResponseResolver
                 for (int i = 0; i < versions.length; i++)
                 {
                     RangeTombstoneMarker marker = versions[i];
+                    CFMetaData table = command.metadata();
+                    if(marker != null)
+                        logger.trace("Marker : {}", marker.toString(table));
 
                     // Update what the source now thinks is the current deletion
                     if (marker != null)
@@ -632,6 +638,7 @@ public class DataResolver extends ResponseResolver
 
             ColumnFamilyStore.metricsFor(command.metadata().cfId).shortReadProtectionRequests.mark();
             Tracing.trace("Requesting {} extra rows from {} for short read protection", toQuery, source);
+            logger.trace("Requesting {} extra rows from {} for short read protection", toQuery, source);
 
             PartitionRangeReadCommand cmd = makeFetchAdditionalPartitionReadCommand(toQuery);
             return executeReadCommand(cmd);
@@ -769,6 +776,7 @@ public class DataResolver extends ResponseResolver
 
                 ColumnFamilyStore.metricsFor(metadata.cfId).shortReadProtectionRequests.mark();
                 Tracing.trace("Requesting {} extra rows from {} for short read protection", lastQueried, source);
+                logger.trace("Requesting {} extra rows from {} for short read protection", lastQueried, source);
 
                 SinglePartitionReadCommand cmd = makeFetchAdditionalRowsReadCommand(lastQueried);
                 return UnfilteredPartitionIterators.getOnlyElement(executeReadCommand(cmd), cmd);
