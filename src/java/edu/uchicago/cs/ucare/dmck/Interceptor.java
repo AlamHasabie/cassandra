@@ -1,6 +1,5 @@
 package edu.uchicago.cs.ucare.dmck;
 
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
@@ -17,22 +16,19 @@ import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.io.util.BufferedDataOutputStreamPlus;
 import org.apache.cassandra.io.util.DataInputBuffer;
 import org.apache.cassandra.net.CompactEndpointSerializationHelper;
+import org.apache.cassandra.net.MessageIn;
 import org.apache.cassandra.net.MessageOut;
 import org.apache.cassandra.net.MessagingService;
+import org.apache.cassandra.net.IMessageSink;
 
-import edu.uchicago.cs.ucare.dmck.exceptions.VerbNotSupportedException;
 import edu.uchicago.cs.ucare.dmck.filters.*;
 import edu.uchicago.cs.ucare.dmck.util.*;
 
-
-
 /** Interceptor class
 * uses files for IPC
-* TODO : implements {@link org.apache.cassandra.net.IMessageSink} interface, so we dont' need 
-  to change the Cassandra's implementation (rather we just create our own sink(interceptor really))
 */
 
-public class Interceptor 
+public class Interceptor implements IMessageSink
 {    
     private static final Logger logger = LoggerFactory.getLogger(Interceptor.class);
 
@@ -42,6 +38,10 @@ public class Interceptor
     private final Map<MessagingService.Verb, IInterceptorVerbFilter> verbFilters;
     public volatile Set<String> syncFilenameSet;
 
+    /** Due to way message sending is handled */
+    /** We need to keep track which message are already intercepted*/
+    private volatile Set<Integer> interceptedMessage;
+
     /** @TODO : loading from an external conf file*/
     private final String ipcDir;
     private final WatcherThread watcher;
@@ -50,6 +50,7 @@ public class Interceptor
     static {
         instance = new Interceptor();
         instance.startWatcher();
+        MessagingService.instance().addMessageSink(instance);
     }
 
     public Interceptor()
@@ -59,6 +60,7 @@ public class Interceptor
         registerVerbFilter(MessagingService.Verb.READ, new InterceptorReadFilter());
 
         syncFilenameSet = Collections.synchronizedSet(new HashSet<>());
+        interceptedMessage = Collections.synchronizedSet(new HashSet<>());
         
         ipcDir = "/home/alam/cass-ipc";
         isWatching = true;
@@ -66,7 +68,6 @@ public class Interceptor
         watcher = new WatcherThread(ackDir);  
     }
 
-    // Turn off with exception
     public void turnOff(Exception e)
     {
         logger.error("Turning off watcher due to exception : ", e);
@@ -88,74 +89,78 @@ public class Interceptor
         return instance;
     }
 
-    public static boolean shouldIntercept(MessageOut m, int id, InetAddress to)
+    public boolean allowIncomingMessage(MessageIn m, int id)
     {
-        if (!instance().isWatching)
-            return false;
-
-        if (!instance().verbFilters.containsKey(m.verb)) {
-            logger.trace("Current version of interceptor does not support verb : {}", m.verb);
-            return false;
-        }
-
-        try {
-            return instance().verbFilters.get(m.verb).shouldIntercept(m, id, to);
-        } catch (Exception e) {
-            logger.trace("Exception occurs during filtering", e);
-            return false;
-        }
+        return true;
     }
 
-    public static void intercept(MessageOut m, int id, InetAddress to)
+    public boolean allowOutgoingMessage(MessageOut m, int id, InetAddress to)
     {
-        try {
-            if(!instance().verbFilters.containsKey(m.verb))
-                throw new VerbNotSupportedException(m.verb.name() + " Not supported");
+        if(!isWatching)
+        {
+            return true;
+        }
 
+        if(!verbFilters.containsKey(m.verb))
+        {
+            return true;
+        }
+
+        if(interceptedMessage.contains(id))
+        {
+            return true;
+        }
+
+        if(!instance().verbFilters.containsKey(m.verb))
+        {
+            return true;
+        }
+
+        if(!instance().verbFilters.get(m.verb).shouldIntercept(m, id, to))
+        {
+            return true;
+        }
+
+        try {
             write(m, id, to);
-
-        } 
-        /** In any case of exception, we should not block the message */
-        catch (VerbNotSupportedException e) 
+            logger.trace("Intercepted message {}@{}", id, to);
+            return false;
+        } catch (IOException e)
         {
-            logger.error("VerbNotSupportedException: ", e);
-            MessagingService.instance().sendOneWayFiltered(m, id, to);
-        } 
-        catch (Exception e) 
+            logger.error("IOException ", e);
+            return true;
+        } catch (Exception e) 
         {
-            logger.error("Exception occurs: ",e);
-            MessagingService.instance().sendOneWayFiltered(m, id, to);          
+            logger.error("Exception occurs : ", e);
+            return true;
         }
     }
 
-    private static int createHash(MessageOut m, int id, InetAddress to)
+    private int createHash(MessageOut m, int id, InetAddress to)
     {
         return m.from.hashCode() + Integer.hashCode(id);
 
     }
-    private static void write(MessageOut m, int id, InetAddress to) throws IOException
+    private void write(MessageOut m, int id, InetAddress to) throws IOException
     {
-            String filename = Integer.toString(createHash(m, id, to));
+        String filename = Integer.toString(createHash(m, id, to));
 
-            instance().syncFilenameSet.add(filename);
+        syncFilenameSet.add(filename);
+        File tmpFile = Paths.get(ipcDir.toString(), "new", filename + ".tmp")
+                            .toFile();
+        File mFile = Paths.get(ipcDir.toString(), "new", filename).toFile();
 
-            // Avoid racing condition by using tmp
-            File tmpFile = Paths.get(instance().ipcDir.toString(), "new", filename + ".tmp")
-                                .toFile();
-            File mFile = Paths.get(instance().ipcDir.toString(), "new", filename).toFile();
+        tmpFile.createNewFile();
+        FileOutputStream fs = new FileOutputStream(tmpFile, false);
+        BufferedDataOutputStreamPlus out = new BufferedDataOutputStreamPlus(fs);
 
-            tmpFile.createNewFile();
-            FileOutputStream fs = new FileOutputStream(tmpFile, false);
-            BufferedDataOutputStreamPlus out = new BufferedDataOutputStreamPlus(fs);
+        out.writeInt(id);
+        CompactEndpointSerializationHelper.serialize(to, out);
+        m.serialize(out, MessagingService.current_version);
 
-            // Additional data : id and endpoint
-            out.writeInt(id);
-            CompactEndpointSerializationHelper.serialize(to, out);
-            m.serialize(out, MessagingService.current_version);
-
-            out.flush();
-            tmpFile.renameTo(mFile);
-            logger.trace("successfully create message file : {}", filename);
+        out.flush();
+        tmpFile.renameTo(mFile);
+        logger.trace("successfully create message file : {}", filename);
     }
 
     private void startWatcher()
@@ -176,7 +181,6 @@ public class Interceptor
             ipcDir = path;
         }
 
-        //
         private DataInputBuffer readFile(String filename) throws IOException
         {
             Path filepath = Paths.get(ipcDir.toString(), filename);  
@@ -209,8 +213,8 @@ public class Interceptor
 
                     logger.trace("Finished message deserialization {}:{}", id, to);
                     Interceptor.instance().syncFilenameSet.remove(filename);
-
-                    MessagingService.instance().sendOneWayFiltered(message, id, to);
+                    Interceptor.instance().interceptedMessage.add(id);
+                    MessagingService.instance().sendOneWay(message, id, to);
                 }
             }
             catch (IOException e)
