@@ -112,7 +112,7 @@ appender reference in the root level section below.
   <logger name="org.apache.cassandra.service.DataResolver" level="TRACE"/>
   <logger name="org.apache.cassandra.transport.messages.Message" level="TRACE"/>
   <logger name="org.apache.cassandra.db" level="TRACE"/>
-  <!-- <logger name="org.apache.cassandra.net" level="TRACE"/> -->
+  <logger name="org.apache.cassandra.net" level="TRACE"/>
 
   <!-- DMCK Logger -->
   <logger name="edu.uchicago.cs.ucare.dmck" level="TRACE"/>
