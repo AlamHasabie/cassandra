@@ -25,6 +25,7 @@ public class ReadRepairVerbHandler implements IVerbHandler<Mutation>
 {
     public void doVerb(MessageIn<Mutation> message, int id)
     {
+    	logger.trace("Read repair received, content : {}", message.payload.toString());
         message.payload.apply();
         MessagingService.instance().sendReply(WriteResponse.createMessage(), id, message.from);
     }
