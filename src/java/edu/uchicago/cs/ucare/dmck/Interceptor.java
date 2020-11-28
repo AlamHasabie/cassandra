@@ -111,12 +111,12 @@ public class Interceptor implements IMessageSink
             return true;
         }
 
-        if(!instance().verbFilters.containsKey(m.verb))
+        if(!verbFilters.containsKey(m.verb))
         {
             return true;
         }
 
-        if(!instance().verbFilters.get(m.verb).shouldIntercept(m, id, to))
+        if(!verbFilters.get(m.verb).shouldIntercept(m, id, to))
         {
             return true;
         }

@@ -17,14 +17,19 @@
  */
 package org.apache.cassandra.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.MessageIn;
 import org.apache.cassandra.net.MessagingService;
 
 public class ReadRepairVerbHandler implements IVerbHandler<Mutation>
 {
+	protected static final Logger logger = LoggerFactory.getLogger(ReadCommandVerbHandler.class);
     public void doVerb(MessageIn<Mutation> message, int id)
     {
+    	logger.trace("Read repair received, content : {}", message.payload.toString());
         message.payload.apply();
         MessagingService.instance().sendReply(WriteResponse.createMessage(), id, message.from);
     }
