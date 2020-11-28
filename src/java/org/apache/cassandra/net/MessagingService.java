@@ -788,6 +788,7 @@ public final class MessagingService implements MessagingServiceMBean
             if (!ms.allowOutgoingMessage(message, id, to))
                 return;
 
+        logger.trace("{} actually sending {} to {}@{}", FBUtilities.getBroadcastAddress(), message.verb, id, to);
         // get pooled connection (really, connection queue)
         OutboundTcpConnection connection = getConnection(to, message);
 
