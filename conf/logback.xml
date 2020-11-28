@@ -111,7 +111,9 @@ appender reference in the root level section below.
   <logger name="org.apache.cassandra.service.ReadCallback" level="TRACE"/>
   <logger name="org.apache.cassandra.service.DataResolver" level="TRACE"/>
   <logger name="org.apache.cassandra.transport.messages.Message" level="TRACE"/>
-  <logger name="org.apache.cassandra.db" level="TRACE"/>
+  <!-- <logger name="org.apache.cassandra.db" level="TRACE"/>-->
+  <logger name="org.apache.cassandra.db.ReadCommandVerbHandler" level = "TRACE"/>
+    <logger name="org.apache.cassandra.db.ReadRepairVerbHandler" level = "TRACE"/>
   <logger name="org.apache.cassandra.net" level="TRACE"/>
 
   <!-- DMCK Logger -->
