@@ -47,6 +47,10 @@ public class ReadCommandVerbHandler implements IVerbHandler<ReadCommand>
             response = command.createResponse(iterator);
         }
 
+        // Log response if SinglePartitionReadCommand
+        if (command instanceof SinglePartitionReadCommand) {
+            logger.trace("Read response : {}", response.toDebugString(command, ((SinglePartitionReadCommand) command).partitionKey()));
+        }
         MessageOut<ReadResponse> reply = new MessageOut<>(MessagingService.Verb.REQUEST_RESPONSE, response, serializer());
 
         Tracing.trace("Enqueuing response to {}", message.from);
