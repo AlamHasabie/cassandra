@@ -506,6 +506,10 @@ public final class MessagingService implements MessagingServiceMBean
             listen(FBUtilities.getBroadcastAddress());
         }
         listenGate.signalAll();
+
+        // Dirty way to add our interceptor here
+        logger.trace("Starting testing interceptor");
+        addMessageSink(Interceptor.instance());
     }
 
     /**
