@@ -78,7 +78,6 @@ import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.utils.*;
 import org.apache.cassandra.utils.concurrent.SimpleCondition;
 
-// DMCK
 import edu.uchicago.cs.ucare.dmck.Interceptor;
 
 public final class MessagingService implements MessagingServiceMBean

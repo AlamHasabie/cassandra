@@ -26,7 +26,7 @@ import org.apache.cassandra.net.MessagingService;
 
 public class ReadRepairVerbHandler implements IVerbHandler<Mutation>
 {
-	protected static final Logger logger = LoggerFactory.getLogger(ReadCommandVerbHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReadRepairVerbHandler.class);
     public void doVerb(MessageIn<Mutation> message, int id)
     {
     	logger.trace("Read repair received, content : {}", message.payload.toString());

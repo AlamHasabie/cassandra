@@ -33,9 +33,7 @@ import org.apache.cassandra.tracing.Tracing;
 
 public class ReadCommandVerbHandler implements IVerbHandler<ReadCommand>
 {
-
-    protected static final Logger logger = LoggerFactory.getLogger(ReadCommandVerbHandler.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(ReadCommandVerbHandler.class);
     protected IVersionedSerializer<ReadResponse> serializer()
     {
         return ReadResponse.serializer;
@@ -63,6 +61,10 @@ public class ReadCommandVerbHandler implements IVerbHandler<ReadCommand>
             
         }
 
+        // Log response if SinglePartitionReadCommand
+        if (command instanceof SinglePartitionReadCommand) {
+            logger.trace("Read response : {}", response.toDebugString(command, ((SinglePartitionReadCommand) command).partitionKey()));
+        }
         MessageOut<ReadResponse> reply = new MessageOut<>(MessagingService.Verb.REQUEST_RESPONSE, response, serializer());
 
         Tracing.trace("Enqueuing response to {}", message.from);
