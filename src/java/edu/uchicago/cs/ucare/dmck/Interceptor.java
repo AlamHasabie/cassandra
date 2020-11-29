@@ -199,7 +199,6 @@ public class Interceptor implements IMessageSink
         {
             try {
                 String filename = event.context().toString();
-                logger.trace("Set size {}", Interceptor.instance().syncFilenameSet.size());
 
                 if(Interceptor.instance().syncFilenameSet.contains(filename)) {
                     DataInputBuffer inputBuffer = readFile(filename); 

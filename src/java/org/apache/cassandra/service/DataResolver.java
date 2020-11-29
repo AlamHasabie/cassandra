@@ -643,6 +643,7 @@ public class DataResolver extends ResponseResolver
 
             ColumnFamilyStore.metricsFor(command.metadata().cfId).shortReadProtectionRequests.mark();
             Tracing.trace("Requesting {} extra rows from {} for short read protection", toQuery, source);
+            logger.trace("Requesting {} extra rows from {} for short read protection", toQuery, source);
 
             PartitionRangeReadCommand cmd = makeFetchAdditionalPartitionReadCommand(toQuery);
             return executeReadCommand(cmd);
