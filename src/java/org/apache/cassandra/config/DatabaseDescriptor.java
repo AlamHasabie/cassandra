@@ -2078,4 +2078,9 @@ public class DatabaseDescriptor
         return conf.gc_warn_threshold_in_ms;
     }
 
+    public static boolean getAllowInterceptor()
+    {
+        return conf.allow_interceptor;
+    }
+
 }

@@ -342,6 +342,12 @@ public class Config
      */
     public UserFunctionTimeoutPolicy user_function_timeout_policy = UserFunctionTimeoutPolicy.die;
 
+    /**
+    DMCK
+    We won't intercept any message if not needed
+    */
+    public boolean allow_interceptor = false;
+
     public static boolean getOutboundBindAny()
     {
         return outboundBindAny;
