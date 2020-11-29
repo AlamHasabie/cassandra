@@ -122,11 +122,4 @@ appender reference in the root level section below.
 
   <!-- DigestTrace -->
   <!-- God, how can we exempt the gossip state-->
-
-
-
-<<<<<<< HEAD
 </configuration>
-=======
-</configuration>
->>>>>>> 14330-3.0
