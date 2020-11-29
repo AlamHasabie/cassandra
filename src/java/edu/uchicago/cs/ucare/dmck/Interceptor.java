@@ -20,6 +20,7 @@ import org.apache.cassandra.net.MessageIn;
 import org.apache.cassandra.net.MessageOut;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.net.IMessageSink;
+import org.apache.cassandra.config.DatabaseDescriptor;
 
 import edu.uchicago.cs.ucare.dmck.filters.*;
 import edu.uchicago.cs.ucare.dmck.util.*;
@@ -63,9 +64,9 @@ public class Interceptor implements IMessageSink
         interceptedMessage = Collections.synchronizedSet(new HashSet<>());
         
         ipcDir = "/home/alam/cass-ipc";
-        isWatching = true;
         Path ackDir = Paths.get(ipcDir, "ack");
-        watcher = new WatcherThread(ackDir);  
+        isWatching = DatabaseDescriptor.getAllowInterceptor();
+        watcher = new WatcherThread(ackDir);
     }
 
     public void turnOff(Exception e)
@@ -165,12 +166,13 @@ public class Interceptor implements IMessageSink
 
     private void startWatcher()
     {
-        Thread thread = new Thread(watcher);
-        thread.start();
+        if(isWatching)
+        {        
+            Thread thread = new Thread(watcher);
+            thread.start();
+        }
     }
 
-    /** Watch over ack dir */
-    /** TODO: handle exceptions (InterruptedException) */
     private class WatcherThread implements Runnable 
     {
         private final Logger logger = LoggerFactory.getLogger(WatcherThread.class);
