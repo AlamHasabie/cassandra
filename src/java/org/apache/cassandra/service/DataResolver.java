@@ -781,6 +781,7 @@ public class DataResolver extends ResponseResolver
 
                 ColumnFamilyStore.metricsFor(metadata.cfId).shortReadProtectionRequests.mark();
                 Tracing.trace("Requesting {} extra rows from {} for short read protection", lastQueried, source);
+                logger.trace("Requesting {} extra rows from {} for short read protection", lastQueried, source);
 
                 SinglePartitionReadCommand cmd = makeFetchAdditionalRowsReadCommand(lastQueried);
                 return UnfilteredPartitionIterators.getOnlyElement(executeReadCommand(cmd), cmd);
