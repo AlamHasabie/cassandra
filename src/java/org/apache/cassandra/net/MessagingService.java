@@ -78,6 +78,8 @@ import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.utils.*;
 import org.apache.cassandra.utils.concurrent.SimpleCondition;
 
+import edu.uchicago.cs.ucare.dmck.Interceptor;
+
 public final class MessagingService implements MessagingServiceMBean
 {
     // Required to allow schema migrations while upgrading within the minor 3.0.x versions to 3.0.14.
